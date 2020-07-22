@@ -1,47 +1,96 @@
 package ru.perm.android.chatapp;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     FirebaseDatabase database = FirebaseDatabase.getInstance();
-    DatabaseReference message = database.getReference("messages");
+    DatabaseReference databaseReference = database.getReference("messages");
 
-    Button btnSpecial;
+    EditText message_edit_text;
+    Button send_message_button;
+    RecyclerView messages_recyclerview;
+
+    ArrayList<String> messages;
+    DataAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnSpecial = findViewById(R.id.btnSpecial);
-        btnSpecial.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                message.push().setValue("Hello, World!");
-            }
-        });
+        messages = new ArrayList<>();
+        adapter = new DataAdapter(this, messages);
 
-        message.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                String value = dataSnapshot.getValue(String.class);
-                Log.d(getClass().getName(), "Value is: " + value);
-            }
+        message_edit_text = findViewById(R.id.message_edit_text);
+        send_message_button = findViewById(R.id.send_message_button);
+        messages_recyclerview = findViewById(R.id.messages_recyclerview);
 
-            @Override
-            public void onCancelled(DatabaseError error) { }
-        });
+        messages_recyclerview.setLayoutManager(new LinearLayoutManager(this));
+        messages_recyclerview.setAdapter(adapter);
+
+        send_message_button.setOnClickListener(onClickListener);
+        databaseReference.addChildEventListener(childEventListener);
     }
+
+    /// ------------------------ Listeners -----------------------------
+    ChildEventListener childEventListener = new ChildEventListener() {
+        @Override
+        public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+            String msg = snapshot.getValue(String.class);
+            messages.add(msg);
+            adapter.notifyDataSetChanged();
+            messages_recyclerview.smoothScrollToPosition(messages.size());
+        }
+        @Override
+        public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+        }
+        @Override
+        public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+        }
+        @Override
+        public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+        }
+        @Override
+        public void onCancelled(@NonNull DatabaseError error) {
+
+        }
+    };
+
+    View.OnClickListener onClickListener = (view) -> {
+            String msg = message_edit_text.getText()
+                    .toString().trim();
+
+            if (msg.equals("")) {
+                Toast.makeText(getApplicationContext(),
+                        "Введите сообщение!",
+                        Toast.LENGTH_SHORT)
+                        .show();
+                return;
+            }
+
+            databaseReference.push().setValue(msg);
+            message_edit_text.setText("");
+    };
 }
