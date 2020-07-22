@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ChatApp</string>
+    <string name="message_edit_text">Введите сообщение</string>
+    <string name="send_message_button">Отправить</string>
 </resources>
